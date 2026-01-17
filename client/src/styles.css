@@ -42,6 +42,29 @@ a {
   gap: 16px;
 }
 
+.app-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.report-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 16px;
+  border-radius: 999px;
+  border: 1px solid var(--accent-dark);
+  background: var(--accent-dark);
+  color: #fff;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.report-button:hover {
+  filter: brightness(1.05);
+}
+
 .app-kicker {
   text-transform: uppercase;
   letter-spacing: 0.2em;
@@ -145,6 +168,23 @@ button:hover:not(:disabled) {
   gap: 12px;
 }
 
+.notepad-card {
+  background: #fdf7ec;
+  border: 1px dashed rgba(16, 23, 24, 0.18);
+}
+
+.notepad-textarea {
+  width: 100%;
+  min-height: 140px;
+  padding: 12px;
+  border-radius: 12px;
+  border: 1px solid var(--stroke);
+  background: #fff;
+  font-family: inherit;
+  font-size: 0.95rem;
+  resize: vertical;
+}
+
 .table-header {
   display: flex;
   align-items: center;
@@ -238,6 +278,26 @@ th {
   align-items: center;
   justify-content: space-between;
   gap: 16px;
+}
+
+.detail-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.edit-toggle {
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--accent-dark);
+  background: var(--accent-dark);
+  color: #fff;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.edit-toggle:hover {
+  filter: brightness(0.95);
 }
 
 .detail-input {

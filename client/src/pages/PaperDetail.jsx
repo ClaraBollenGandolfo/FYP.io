@@ -9,7 +9,19 @@ export default function PaperDetail() {
   const [status, setStatus] = useState('idle');
   const [error, setError] = useState('');
   const [saveMessage, setSaveMessage] = useState('');
-  const [isEditingNote, setIsEditingNote] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+
+  function buildForm(data) {
+    return {
+      author: data.author || '',
+      title: data.title || '',
+      url: data.url || '',
+      published_date: data.published_date || '',
+      citation_count:
+        data.citation_count === null || data.citation_count === undefined ? '' : String(data.citation_count),
+      note: data.note || ''
+    };
+  }
 
   const isDirty = useMemo(() => {
     if (!form || !paper) {
@@ -31,15 +43,7 @@ export default function PaperDetail() {
       try {
         const data = await fetchPaper(id);
         setPaper(data);
-        setForm({
-          author: data.author || '',
-          title: data.title || '',
-          url: data.url || '',
-          published_date: data.published_date || '',
-          citation_count:
-            data.citation_count === null || data.citation_count === undefined ? '' : String(data.citation_count),
-          note: data.note || ''
-        });
+        setForm(buildForm(data));
       } catch (err) {
         setError('Could not load paper.');
       }
@@ -53,14 +57,14 @@ export default function PaperDetail() {
     setSaveMessage('');
   }
 
-  function handleNoteToggle() {
-    if (!isEditingNote) {
-      setIsEditingNote(true);
+  function handleEditToggle() {
+    if (!isEditing) {
+      setIsEditing(true);
       return;
     }
 
-    setIsEditingNote(false);
-    setForm((prev) => ({ ...prev, note: paper.note || '' }));
+    setIsEditing(false);
+    setForm(buildForm(paper));
   }
 
   async function handleSave() {
@@ -81,15 +85,7 @@ export default function PaperDetail() {
         note: form.note.trim()
       });
       setPaper(next);
-      setForm({
-        author: next.author || '',
-        title: next.title || '',
-        url: next.url || '',
-        published_date: next.published_date || '',
-        citation_count:
-          next.citation_count === null || next.citation_count === undefined ? '' : String(next.citation_count),
-        note: next.note || ''
-      });
+      setForm(buildForm(next));
       setSaveMessage('Saved.');
     } catch (err) {
       setError('Could not save changes.');
@@ -122,86 +118,116 @@ export default function PaperDetail() {
       <div className="detail-header">
         <div>
           <p className="app-kicker">Paper Detail</p>
-          <h2>{paper.title || 'Untitled'}</h2>
+          <h2>{(isEditing ? form.title : paper.title) || 'Untitled'}</h2>
         </div>
-        <Link to="/" className="ghost-link">
-          Back to dashboard
-        </Link>
+        <div className="detail-header-actions">
+          <button type="button" className="edit-toggle" onClick={handleEditToggle}>
+            {isEditing ? 'End edit' : 'Edit'}
+          </button>
+          <Link to="/" className="ghost-link">
+            Back to dashboard
+          </Link>
+        </div>
       </div>
       <dl className="detail-list">
         <div>
           <dt>Author</dt>
           <dd>
-            <input
-              className="detail-input"
-              value={form.author}
-              onChange={(event) => updateField('author', event.target.value)}
-              placeholder="Unknown"
-            />
+            {isEditing ? (
+              <input
+                className="detail-input"
+                value={form.author}
+                onChange={(event) => updateField('author', event.target.value)}
+                placeholder="Unknown"
+              />
+            ) : (
+              <span>{paper.author || 'Unknown'}</span>
+            )}
           </dd>
         </div>
         <div>
           <dt>Published</dt>
           <dd>
-            <input
-              className="detail-input"
-              value={form.published_date}
-              onChange={(event) => updateField('published_date', event.target.value)}
-              placeholder="—"
-            />
+            {isEditing ? (
+              <input
+                className="detail-input"
+                value={form.published_date}
+                onChange={(event) => updateField('published_date', event.target.value)}
+                placeholder="—"
+              />
+            ) : (
+              <span>{paper.published_date || '—'}</span>
+            )}
           </dd>
         </div>
         <div>
           <dt>Citations</dt>
           <dd>
-            <input
-              className="detail-input"
-              type="number"
-              min="0"
-              value={form.citation_count}
-              onChange={(event) => updateField('citation_count', event.target.value)}
-              placeholder="—"
-            />
+            {isEditing ? (
+              <input
+                className="detail-input"
+                type="number"
+                min="0"
+                value={form.citation_count}
+                onChange={(event) => updateField('citation_count', event.target.value)}
+                placeholder="—"
+              />
+            ) : (
+              <span>
+                {paper.citation_count === null || paper.citation_count === undefined
+                  ? '—'
+                  : paper.citation_count}
+              </span>
+            )}
           </dd>
         </div>
         <div>
           <dt>Link</dt>
           <dd>
-            <input
-              className="detail-input"
-              value={form.url}
-              onChange={(event) => updateField('url', event.target.value)}
-              placeholder="—"
-            />
+            {isEditing ? (
+              <input
+                className="detail-input"
+                value={form.url}
+                onChange={(event) => updateField('url', event.target.value)}
+                placeholder="—"
+              />
+            ) : paper.url ? (
+              <a href={paper.url} target="_blank" rel="noreferrer">
+                {paper.url}
+              </a>
+            ) : (
+              <span>—</span>
+            )}
           </dd>
         </div>
         <div>
           <dt>Title</dt>
           <dd>
-            <input
-              className="detail-input"
-              value={form.title}
-              onChange={(event) => updateField('title', event.target.value)}
-              placeholder="Untitled"
-            />
+            {isEditing ? (
+              <input
+                className="detail-input"
+                value={form.title}
+                onChange={(event) => updateField('title', event.target.value)}
+                placeholder="Untitled"
+              />
+            ) : (
+              <span>{paper.title || 'Untitled'}</span>
+            )}
           </dd>
         </div>
       </dl>
-      <div className="detail-actions">
-        <button type="button" onClick={handleSave} disabled={!isDirty || status === 'saving'}>
-          {status === 'saving' ? 'Saving…' : 'Save changes'}
-        </button>
-        {saveMessage ? <span className="muted">{saveMessage}</span> : null}
-        {error ? <span className="error">{error}</span> : null}
-      </div>
-      <div className="notes-block">
-        <div className="notes-header">
-          <h3>Original Note</h3>
-          <button type="button" className="ghost-link" onClick={handleNoteToggle}>
-            {isEditingNote ? 'Cancel edit' : 'Edit'}
+      {isEditing ? (
+        <div className="detail-actions">
+          <button type="button" onClick={handleSave} disabled={!isDirty || status === 'saving'}>
+            {status === 'saving' ? 'Saving…' : 'Save changes'}
           </button>
+          {saveMessage ? <span className="muted">{saveMessage}</span> : null}
+          {error ? <span className="error">{error}</span> : null}
         </div>
-        {isEditingNote ? (
+      ) : null}
+      <div className="notes-block">
+        <h3>Original Note</h3>
+        {isEditing ? (
           <textarea
             className="detail-input detail-textarea"
             value={form.note}

@@ -11,11 +11,21 @@ export default function App() {
           <p className="app-kicker">FYP.io</p>
           <h1 className="app-title">Literature Desk</h1>
         </div>
-        <nav>
-          <Link to="/" className="ghost-link">
-            Dashboard
-          </Link>
-        </nav>
+        <div className="app-header-actions">
+          <nav>
+            <Link to="/" className="ghost-link">
+              Dashboard
+            </Link>
+          </nav>
+          <a
+            href="https://www.overleaf.com/project/6967b6d7653766a341e88fa5"
+            className="report-button"
+            target="_blank"
+            rel="noreferrer"
+          >
+            Report
+          </a>
+        </div>
       </header>
       <main className="app-main">
         <Routes>

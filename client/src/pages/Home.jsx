@@ -10,6 +10,7 @@ export default function Home() {
   const [error, setError] = useState('');
   const [ollamaStatus, setOllamaStatus] = useState('idle');
   const [ollamaMessage, setOllamaMessage] = useState('');
+  const [todoText, setTodoText] = useState('');
   const selectAllRef = useRef(null);
 
   async function loadPapers() {
@@ -25,6 +26,17 @@ export default function Home() {
   useEffect(() => {
     loadPapers();
   }, []);
+
+  useEffect(() => {
+    const saved = localStorage.getItem('fyp-io-todo');
+    if (saved !== null) {
+      setTodoText(saved);
+    }
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem('fyp-io-todo', todoText);
+  }, [todoText]);
 
   const allSelected = papers.length > 0 && selectedIds.length === papers.length;
   const someSelected = selectedIds.length > 0 && !allSelected;
@@ -128,6 +140,18 @@ export default function Home() {
       </section>
 
       <section className="card table-card">
+        <div className="card notepad-card">
+          <div className="table-header">
+            <h2>Notepad</h2>
+          </div>
+          <textarea
+            className="notepad-textarea"
+            value={todoText}
+            onChange={(event) => setTodoText(event.target.value)}
+            placeholder="Write your to-do list here..."
+            rows={6}
+          />
+        </div>
         <div className="table-header">
           <h2>Literature Index</h2>
           <div className="table-actions">
