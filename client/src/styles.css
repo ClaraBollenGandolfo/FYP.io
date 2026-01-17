@@ -240,6 +240,27 @@ th {
   gap: 16px;
 }
 
+.detail-input {
+  width: 100%;
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: 1px solid var(--stroke);
+  background: #fff;
+  font-family: inherit;
+  font-size: 0.95rem;
+}
+
+.detail-input:focus {
+  outline: 2px solid rgba(34, 124, 108, 0.2);
+  border-color: #227c6c;
+}
+
+.detail-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
 .detail-list {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));

@@ -3,6 +3,14 @@ const DB_VERSION = 1;
 const STORE_NAME = 'papers';
 const OLLAMA_BASE_URL = import.meta.env.VITE_OLLAMA_BASE_URL || 'http://localhost:11434';
 const OLLAMA_MODEL = import.meta.env.VITE_OLLAMA_MODEL || 'llama3.1';
+const SEED_PAPER = {
+  author: 'Doe et al.',
+  title: 'Dummy Paper for Debugging',
+  url: 'https://example.com/paper',
+  published_date: '2023',
+  citation_count: 42,
+  note: 'This is a placeholder note so you can test the UI without extraction.'
+};
 
 function openDb() {
   return new Promise((resolve, reject) => {
@@ -100,13 +108,26 @@ export async function createNote(noteText) {
 }
 
 export async function fetchPapers() {
-  const papers = await withStore('readonly', (store) => {
+  let papers = await withStore('readonly', (store) => {
     return new Promise((resolve, reject) => {
       const request = store.getAll();
       request.onsuccess = () => resolve(request.result);
       request.onerror = () => reject(request.error);
     });
   });
+
+  if (papers.length === 0) {
+    await withStore('readwrite', (store) => {
+      store.add({ ...SEED_PAPER, created_at: new Date().toISOString() });
+    });
+    papers = await withStore('readonly', (store) => {
+      return new Promise((resolve, reject) => {
+        const request = store.getAll();
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => reject(request.error);
+      });
+    });
+  }
 
   return [...papers].sort((a, b) => b.id - a.id);
 }
@@ -125,6 +146,28 @@ export async function fetchPaper(id) {
   }
 
   return record;
+}
+
+export async function updatePaper(id, updates) {
+  const record = await withStore('readonly', (store) => {
+    return new Promise((resolve, reject) => {
+      const request = store.get(Number(id));
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error);
+    });
+  });
+
+  if (!record) {
+    throw new Error('Not found');
+  }
+
+  const nextRecord = { ...record, ...updates };
+
+  await withStore('readwrite', (store) => {
+    store.put(nextRecord);
+  });
+
+  return nextRecord;
 }
 
 export async function deletePapers(ids) {
