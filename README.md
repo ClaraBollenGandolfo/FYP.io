@@ -57,3 +57,17 @@ ollama pull llama3.1
 USE_OLLAMA=true
 OLLAMA_MODEL=llama3.1
 ```
+
+### GitHub Pages + Ollama (browser-only)
+
+If you deploy the client to GitHub Pages, the browser will call Ollama directly at
+`http://localhost:11434`. You must enable CORS in Ollama for your GitHub Pages origin.
+
+Example (adjust origin for your site):
+
+```bash
+# macOS example
+OLLAMA_ORIGINS="https://<user>.github.io" ollama serve
+```
+
+Then test the connection in the app using the “Test Ollama Connection” button.

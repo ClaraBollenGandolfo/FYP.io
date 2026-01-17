@@ -8,6 +8,8 @@ export default function Home() {
   const [selectedIds, setSelectedIds] = useState([]);
   const [status, setStatus] = useState('idle');
   const [error, setError] = useState('');
+  const [ollamaStatus, setOllamaStatus] = useState('idle');
+  const [ollamaMessage, setOllamaMessage] = useState('');
   const selectAllRef = useRef(null);
 
   async function loadPapers() {
@@ -80,6 +82,24 @@ export default function Home() {
       setError('Failed to delete selected papers.');
     } finally {
       setStatus('idle');
+    }
+  }
+
+  async function checkOllama() {
+    setOllamaStatus('loading');
+    setOllamaMessage('');
+    try {
+      const response = await fetch('http://localhost:11434/api/tags');
+      if (!response.ok) {
+        throw new Error(`Ollama returned ${response.status}`);
+      }
+      const data = await response.json();
+      const modelCount = Array.isArray(data?.models) ? data.models.length : 0;
+      setOllamaStatus('success');
+      setOllamaMessage(modelCount > 0 ? `${modelCount} model(s) available.` : 'No models found.');
+    } catch (err) {
+      setOllamaStatus('error');
+      setOllamaMessage('Cannot reach Ollama. Check install, CORS, and that it is running.');
     }
   }
 
@@ -188,6 +208,21 @@ export default function Home() {
               )}
             </tbody>
           </table>
+        </div>
+      </section>
+
+      <section className="card note-card">
+        <h2>Ollama Setup (for GitHub Pages)</h2>
+        <p className="muted">
+          This app can call your local Ollama to extract metadata without a paid API key.
+          You will need to install Ollama, pull a model, and allow CORS for your GitHub Pages
+          origin.
+        </p>
+        <div className="note-actions">
+          <button type="button" onClick={checkOllama} disabled={ollamaStatus === 'loading'}>
+            {ollamaStatus === 'loading' ? 'Checking…' : 'Test Ollama Connection'}
+          </button>
+          {ollamaMessage ? <span className={ollamaStatus === 'error' ? 'error' : 'muted'}>{ollamaMessage}</span> : null}
         </div>
       </section>
     </div>
