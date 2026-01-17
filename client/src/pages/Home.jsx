@@ -50,7 +50,7 @@ export default function Home() {
       setNoteText('');
       await loadPapers();
     } catch (err) {
-      setError('Extraction failed. Check the API server and try again.');
+      setError('Extraction failed. Check Ollama and CORS, then try again.');
     } finally {
       setStatus('idle');
     }
