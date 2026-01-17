@@ -255,6 +255,11 @@ th {
   border-color: #227c6c;
 }
 
+.detail-textarea {
+  min-height: 140px;
+  resize: vertical;
+}
+
 .detail-actions {
   display: flex;
   align-items: center;

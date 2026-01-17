@@ -20,7 +20,8 @@ export default function PaperDetail() {
       form.url !== (paper.url || '') ||
       form.published_date !== (paper.published_date || '') ||
       form.citation_count !==
-        (paper.citation_count === null || paper.citation_count === undefined ? '' : String(paper.citation_count))
+        (paper.citation_count === null || paper.citation_count === undefined ? '' : String(paper.citation_count)) ||
+      form.note !== (paper.note || '')
     );
   }, [form, paper]);
 
@@ -35,7 +36,8 @@ export default function PaperDetail() {
           url: data.url || '',
           published_date: data.published_date || '',
           citation_count:
-            data.citation_count === null || data.citation_count === undefined ? '' : String(data.citation_count)
+            data.citation_count === null || data.citation_count === undefined ? '' : String(data.citation_count),
+          note: data.note || ''
         });
       } catch (err) {
         setError('Could not load paper.');
@@ -64,7 +66,8 @@ export default function PaperDetail() {
         title: form.title.trim(),
         url: form.url.trim(),
         published_date: form.published_date.trim(),
-        citation_count: form.citation_count === '' ? null : Number(form.citation_count)
+        citation_count: form.citation_count === '' ? null : Number(form.citation_count),
+        note: form.note.trim()
       });
       setPaper(next);
       setForm({
@@ -73,7 +76,8 @@ export default function PaperDetail() {
         url: next.url || '',
         published_date: next.published_date || '',
         citation_count:
-          next.citation_count === null || next.citation_count === undefined ? '' : String(next.citation_count)
+          next.citation_count === null || next.citation_count === undefined ? '' : String(next.citation_count),
+        note: next.note || ''
       });
       setSaveMessage('Saved.');
     } catch (err) {
@@ -181,7 +185,12 @@ export default function PaperDetail() {
       </div>
       <div className="notes-block">
         <h3>Original Note</h3>
-        <p>{paper.note}</p>
+        <textarea
+          className="detail-input detail-textarea"
+          value={form.note}
+          onChange={(event) => updateField('note', event.target.value)}
+          rows={6}
+        />
       </div>
     </div>
   );
