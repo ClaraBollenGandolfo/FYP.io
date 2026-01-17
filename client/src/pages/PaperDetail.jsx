@@ -9,6 +9,7 @@ export default function PaperDetail() {
   const [status, setStatus] = useState('idle');
   const [error, setError] = useState('');
   const [saveMessage, setSaveMessage] = useState('');
+  const [isEditingNote, setIsEditingNote] = useState(false);
 
   const isDirty = useMemo(() => {
     if (!form || !paper) {
@@ -50,6 +51,16 @@ export default function PaperDetail() {
   function updateField(field, value) {
     setForm((prev) => ({ ...prev, [field]: value }));
     setSaveMessage('');
+  }
+
+  function handleNoteToggle() {
+    if (!isEditingNote) {
+      setIsEditingNote(true);
+      return;
+    }
+
+    setIsEditingNote(false);
+    setForm((prev) => ({ ...prev, note: paper.note || '' }));
   }
 
   async function handleSave() {
@@ -184,13 +195,22 @@ export default function PaperDetail() {
         {error ? <span className="error">{error}</span> : null}
       </div>
       <div className="notes-block">
-        <h3>Original Note</h3>
-        <textarea
-          className="detail-input detail-textarea"
-          value={form.note}
-          onChange={(event) => updateField('note', event.target.value)}
-          rows={6}
-        />
+        <div className="notes-header">
+          <h3>Original Note</h3>
+          <button type="button" className="ghost-link" onClick={handleNoteToggle}>
+            {isEditingNote ? 'Cancel edit' : 'Edit'}
+          </button>
+        </div>
+        {isEditingNote ? (
+          <textarea
+            className="detail-input detail-textarea"
+            value={form.note}
+            onChange={(event) => updateField('note', event.target.value)}
+            rows={6}
+          />
+        ) : (
+          <p className="note-text">{paper.note || '—'}</p>
+        )}
       </div>
     </div>
   );

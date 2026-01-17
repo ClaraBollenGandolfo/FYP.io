@@ -266,6 +266,19 @@ th {
   gap: 12px;
 }
 
+.notes-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.note-text {
+  margin: 0;
+  white-space: pre-wrap;
+  line-height: 1.6;
+}
+
 .detail-list {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
