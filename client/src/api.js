@@ -56,6 +56,45 @@ function parseJsonFromText(text) {
   }
 }
 
+function parseArrayFromText(text) {
+  const parsed = parseJsonFromText(text);
+  if (Array.isArray(parsed)) {
+    return parsed;
+  }
+  const match = text.match(/\[[\s\S]*\]/);
+  if (match) {
+    const fallback = parseJsonFromText(match[0]);
+    return Array.isArray(fallback) ? fallback : [];
+  }
+  return [];
+}
+
+function getAuthorInitials(author) {
+  if (!author || typeof author !== 'string') {
+    return 'X';
+  }
+  const parts = author
+    .trim()
+    .split(/[^a-zA-Z]+/)
+    .filter(Boolean);
+  if (parts.length === 0) {
+    return 'X';
+  }
+  if (parts.length === 1) {
+    return parts[0][0].toUpperCase();
+  }
+  return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
+}
+
+function nextCode(author, existingCodes) {
+  const prefix = getAuthorInitials(author);
+  let counter = 1;
+  while (existingCodes.has(`${prefix}${counter}`)) {
+    counter += 1;
+  }
+  return `${prefix}${counter}`;
+}
+
 async function extractMetadata(noteText) {
   const prompt = `You are a strict JSON generator.\nExtract the paper metadata from the note below.\nReturn ONLY a JSON object with keys: author, title, url, published_date, citation_count.\nIf a field is unknown, use an empty string or null for citation_count.\n\nNOTE:\n${noteText}`;
 
@@ -94,11 +133,119 @@ async function extractMetadata(noteText) {
   };
 }
 
+export async function queryLiterature(papers, question) {
+  const trimmedQuestion = question.trim();
+  if (!trimmedQuestion) {
+    throw new Error('Question required');
+  }
+
+  const context = papers.slice(0, 20).map((paper) => ({
+    id: paper.id,
+    code: paper.code,
+    author: paper.author,
+    title: paper.title,
+    url: paper.url,
+    published_date: paper.published_date,
+    citation_count: paper.citation_count,
+    note: paper.note
+  }));
+
+  const prompt = `You answer questions using only the provided literature notes.\nDo not mention author names, titles, or URLs in your answer.\nAlways include citations for any claim, using this format: [code: <code>].\nIf the answer is not in the notes, say you don't have enough information and do not invent citations.\n\nNOTES:\n${JSON.stringify(context, null, 2)}\n\nQUESTION:\n${trimmedQuestion}`;
+
+  const response = await fetch(`${OLLAMA_BASE_URL}/api/chat`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      model: OLLAMA_MODEL,
+      messages: [{ role: 'user', content: prompt }],
+      stream: false
+    })
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Ollama error ${response.status}: ${errorText}`);
+  }
+
+  const data = await response.json();
+  return data?.message?.content || '';
+}
+
+export async function generateKeywords(noteText) {
+  const trimmed = noteText.trim();
+  if (!trimmed) {
+    return [];
+  }
+
+  const prompt = `Extract 5-8 short keywords or phrases from the note.\nReturn ONLY a JSON array of strings.\nAvoid full sentences.\n\nNOTE:\n${trimmed}`;
+
+  const response = await fetch(`${OLLAMA_BASE_URL}/api/chat`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      model: OLLAMA_MODEL,
+      messages: [{ role: 'user', content: prompt }],
+      stream: false
+    })
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Ollama error ${response.status}: ${errorText}`);
+  }
+
+  const data = await response.json();
+  const content = data?.message?.content || '[]';
+  const list = parseArrayFromText(content);
+  return [...new Set(list.map((item) => String(item).trim()).filter(Boolean))].slice(0, 8);
+}
+
 export async function createNote(noteText) {
+  const existing = await withStore('readonly', (store) => {
+    return new Promise((resolve, reject) => {
+      const request = store.getAll();
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error);
+    });
+  });
+  const existingCodes = new Set(existing.map((paper) => paper.code).filter(Boolean));
   const extracted = await extractMetadata(noteText);
   const entry = {
+    code: nextCode(extracted.author, existingCodes),
     ...extracted,
     note: noteText,
+    created_at: new Date().toISOString()
+  };
+
+  await withStore('readwrite', (store) => {
+    store.add(entry);
+  });
+}
+
+export async function createPaperManual(data) {
+  const existing = await withStore('readonly', (store) => {
+    return new Promise((resolve, reject) => {
+      const request = store.getAll();
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error);
+    });
+  });
+  const existingCodes = new Set(existing.map((paper) => paper.code).filter(Boolean));
+  const rawCount = data.citation_count;
+  const parsedCount =
+    rawCount === '' || rawCount === null || rawCount === undefined
+      ? null
+      : Number.isFinite(Number(rawCount))
+      ? Number(rawCount)
+      : null;
+  const entry = {
+    code: nextCode(data.author, existingCodes),
+    author: data.author || '',
+    title: data.title || '',
+    url: data.url || '',
+    published_date: data.published_date || '',
+    citation_count: parsedCount,
+    note: data.note || '',
     created_at: new Date().toISOString()
   };
 
@@ -118,7 +265,11 @@ export async function fetchPapers() {
 
   if (papers.length === 0) {
     await withStore('readwrite', (store) => {
-      store.add({ ...SEED_PAPER, created_at: new Date().toISOString() });
+      store.add({
+        ...SEED_PAPER,
+        code: nextCode(SEED_PAPER.author, new Set()),
+        created_at: new Date().toISOString()
+      });
     });
     papers = await withStore('readonly', (store) => {
       return new Promise((resolve, reject) => {
@@ -127,6 +278,22 @@ export async function fetchPapers() {
         request.onerror = () => reject(request.error);
       });
     });
+  }
+
+  const existingCodes = new Set(papers.map((paper) => paper.code).filter(Boolean));
+  const updated = [];
+  papers.forEach((paper) => {
+    if (!paper.code) {
+      const code = nextCode(paper.author, existingCodes);
+      existingCodes.add(code);
+      updated.push({ ...paper, code });
+    }
+  });
+  if (updated.length > 0) {
+    await withStore('readwrite', (store) => {
+      updated.forEach((paper) => store.put(paper));
+    });
+    papers = papers.map((paper) => updated.find((item) => item.id === paper.id) || paper);
   }
 
   return [...papers].sort((a, b) => b.id - a.id);
